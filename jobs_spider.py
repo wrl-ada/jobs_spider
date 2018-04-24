@@ -3,6 +3,7 @@ import requests
 from urllib import urlencode
 from bs4 import BeautifulSoup
 import re
+import xlwt
 
 
 def html_download(city, keyWords, pages):
@@ -60,7 +61,9 @@ def html_parser(html_cont):
     	print location
     """
     count = 0
+    jobs_list = []
     for table in tables:
+    	data = {}
         #print "*" * 50
         #print table
         #position = re.findall(position_pattern,table)
@@ -79,18 +82,16 @@ def html_parser(html_cont):
         description_select = table.select('li[class="newlist_deatil_last"]')
         publish_time_select = table.select('td[class="gxsj"] span')
         if count == 0:
-        	print table
+        	pass
         else:
-        	position = position_select[0].getText()
-        	company = company_select[0].getText()
-        	url = (company_select[0].attrs).get('href')
-        	location = location_select[0].getText()
-        	salary = salary_select[0].getText()
-        	description = description_select[0].getText()
-        	publish_time = publish_time_select[0].getText()
-        	print url+", "+position+", "+company+", "+salary+", "+location+", "+publish_time+", "+description
-        	print "*"*30
-        print count
+        	data['position'] = position_select[0].getText()
+        	data['company'] = company_select[0].getText()
+        	data['url'] = (company_select[0].attrs).get('href')
+        	data['location'] = location_select[0].getText()
+        	data['salary'] = salary_select[0].getText()
+        	data['description'] = description_select[0].getText()
+        	data['publish'] = publish_time_select[0].getText()
+        	jobs_list.append(data)
         count += 1
         '''
         第二种：
@@ -107,16 +108,38 @@ def html_parser(html_cont):
         	print table 
         print "*" * 50
     	'''
-    
+    return jobs_list
      
 	
-def excel_output():
-    pass
+def excel_output(jobs_list):
+    # 创建工作薄
+    file = xlwt.Workbook(encoding="utf-8")
+    sheet = file.add_sheet("Jobs")
+    header = [u'网址', u'职位', u'公司名称', u'薪资', u'工作地点', u'发布时间', u'岗位描述']
+    header_en = [u'url',u'position',u'company',u'salary',u'location',u'publish',u'description']
+    # 写表头
+    for i in range(0,len(header)):
+    	sheet.write(0,i,header[i])
+    # 写表内容
+    row = 1
+    print jobs_list
+    for data in jobs_list:
+    	print data
+    	for item in data.keys():
+    		print item
+    		print row
+    		sheet.write(row,header_en.index(item),data.get(item))
+    	row += 1
+
+    file.save('jobs.xlsx')
+
+    # 写入csv
 
 
 def main(city, keyWords, pages):
     html_cont = html_download(city, keyWords, pages)
-    html_parser(html_cont)
+    jobs_list = html_parser(html_cont)
+    excel_output(jobs_list)
 
 
 if __name__ == '__main__':
