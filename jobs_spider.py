@@ -4,23 +4,28 @@ from urllib import urlencode
 from bs4 import BeautifulSoup
 import re
 import xlwt
+import csv
+import sys
+import urllib2
+from tqdm import tqdm
 
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
-def html_download(city, keyWords, pages):
+def html_download(city, keyWords, page):
     # root URL
-    paras = {
-        'jl': city,
-        'kw': keyWords,
-        'pages': pages,
-        'isadv': 0
-    }
-    url = "http://sou.zhaopin.com/jobs/searchresult.ashx?" + urlencode(paras)
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.text
-    else:
-        return None
-
+	    paras = {
+	        'jl': city,
+	        'kw': keyWords,
+	        'p': page,
+	        'isadv': 0
+	    }
+	    url = "http://sou.zhaopin.com/jobs/searchresult.ashx?" + urlencode(paras)
+	    response = requests.get(url)
+	    if response.status_code == 200:
+	        return response.text
+	    else:
+	        return None
 
 def html_parser(html_cont):
     position = ""
@@ -109,7 +114,12 @@ def html_parser(html_cont):
         print "*" * 50
     	'''
     return jobs_list
-     
+
+def retrive_value(data,header_en):
+	data_list = []
+	for item in header_en:
+		data_list.append(data.get(item))
+	return data_list
 	
 def excel_output(jobs_list):
     # 创建工作薄
@@ -122,25 +132,48 @@ def excel_output(jobs_list):
     	sheet.write(0,i,header[i])
     # 写表内容
     row = 1
-    print jobs_list
     for data in jobs_list:
-    	print data
     	for item in data.keys():
-    		print item
-    		print row
     		sheet.write(row,header_en.index(item),data.get(item))
     	row += 1
 
-    file.save('jobs.xlsx')
+    file.save('result/jobs.xlsx')
 
     # 写入csv
+    with open('result/jobs.csv','w') as csvfile:
+    	writer = csv.writer(csvfile)
+    	writer.writerow(header)
+    	for data in jobs_list:
+    		# 自定义方法根据表头获取值
+    		row_list = retrive_value(data,header_en)
+    		writer.writerow(row_list)
+    		# 使用lambda表达式获取值
+    		#writer.writerow(map(lambda x:data.get(x), header_en ))
 
-
-def main(city, keyWords, pages):
-    html_cont = html_download(city, keyWords, pages)
-    jobs_list = html_parser(html_cont)
-    excel_output(jobs_list)
+def main(city, keyWords):
+	#获取总页数
+    root_url = "http://sou.zhaopin.com/jobs/searchresult.ashx?jl=西安&kw=java&p=1&isadv=0"
+    response = urllib2.urlopen(root_url)
+    if response.getcode() != 200:
+    	return None
+    else:
+    	first_content = response.read()
+    	soup = BeautifulSoup(first_content, 'html.parser')
+    	#pages_pattern = re.compile('<span class="search_yx_tj">共<em>(.*?)</em>个职位满足条件</span>'
+        #, re.S)
+        #pages = re.findall(pages_pattern,first_content)
+    	count = soup.find('span',class_="search_yx_tj").find("em").getText()
+    	pages = int(count)/60
+    if pages<float(count)/60:
+    	pages = pages+1
+    jobs = []
+    for page in tqdm(range(pages)):
+    	html_cont = html_download(city, keyWords, 1)
+        jobs_list = html_parser(html_cont)
+        for job in jobs_list:
+        	jobs.append(job)
+    excel_output(jobs)
 
 
 if __name__ == '__main__':
-    main('西安', 'java', 10)
+    main('西安', 'java')
