@@ -67,6 +67,7 @@ def html_parser(html_cont):
     """
     count = 0
     jobs_list = []
+    web_url = []
     for table in tables:
     	data = {}
         #print "*" * 50
@@ -89,14 +90,17 @@ def html_parser(html_cont):
         if count == 0:
         	pass
         else:
-        	data['position'] = position_select[0].getText()
-        	data['company'] = company_select[0].getText()
-        	data['url'] = (company_select[0].attrs).get('href')
-        	data['location'] = location_select[0].getText()
-        	data['salary'] = salary_select[0].getText()
-        	data['description'] = description_select[0].getText()
-        	data['publish'] = publish_time_select[0].getText()
-        	jobs_list.append(data)
+        	url = (position_select[0].attrs).get('href')
+        	if url not in web_url:
+        		web_url.append(url)
+	        	data['url'] = url
+	        	data['position'] = position_select[0].getText()
+	        	data['company'] = company_select[0].getText()
+	        	data['location'] = location_select[0].getText()
+	        	data['salary'] = salary_select[0].getText()
+	        	data['description'] = description_select[0].getText()
+	        	data['publish'] = publish_time_select[0].getText()
+	        	jobs_list.append(data)
         count += 1
         '''
         第二种：
